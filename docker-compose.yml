@@ -1,0 +1,51 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: sms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: sms_db
+      MYSQL_USER: sms_user
+      MYSQL_PASSWORD: sms_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - sms-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sms-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sms-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: sms_db
+      DB_USERNAME: sms_user
+      DB_PASSWORD: sms_password
+      JWT_SECRET: this-is-a-placeholder-secret-key-replace-in-production-and-keep-it-safe-256bit
+    ports:
+      - "8080:8080"
+    networks:
+      - sms-network
+
+networks:
+  sms-network:
+    driver: bridge
+
+volumes:
+  sms-mysql-data:
+    driver: local
